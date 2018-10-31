@@ -29,3 +29,7 @@ jspm_packages
 .cache
 dist
 
+
+package-lock.json
+
+*.env
