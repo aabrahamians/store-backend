@@ -1,10 +1,12 @@
+const cookieParse = require('cookie-parser')
 require("dotenv").config({ path: "./variables.env", debug: process.env.DEBUG });
 const createServer = require("./createServer");
 const db = require("./db");
 
 const server = createServer();
 
-// handle cookies, populate current users
+// populate current users
+server.express.use(cookieParse());
 
 server.start(
   {
