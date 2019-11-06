@@ -1,5 +1,5 @@
-# source: https://us1.prisma.sh/areg-abrahamians-14cbb6/store-backend/dev
-# timestamp: Sun Nov 11 2018 01:41:52 GMT-0800 (PST)
+# source: https://us1.prisma.sh/testt/store/dev
+# timestamp: Mon Nov 04 2019 21:59:55 GMT-0800 (Pacific Standard Time)
 
 type AggregateItem {
   count: Int!
@@ -38,6 +38,7 @@ type ItemConnection {
 }
 
 input ItemCreateInput {
+  id: ID
   title: String!
   description: String!
   image: String
@@ -507,6 +508,7 @@ type UserConnection {
 }
 
 input UserCreateInput {
+  id: ID
   name: String!
   email: String!
 }
@@ -767,4 +769,5 @@ input UserWhereInput {
 
 input UserWhereUniqueInput {
   id: ID
+  email: String
 }

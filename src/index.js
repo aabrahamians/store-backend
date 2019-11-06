@@ -4,7 +4,7 @@ const db = require("./db");
 
 const server = createServer();
 
-// handle cookies populate current users
+// handle cookies, populate current users
 
 server.start(
   {
@@ -15,8 +15,9 @@ server.start(
   },
   serverReady => {
     console.log("fdafasfdasdf", process.env.PORT);
+    debugger
     console.log(
-      `Server is now running on port ${process.env.IP}:${serverReady.port}`
+      `Server is now running on port ${process.env.FRONTEND_URL}:${serverReady.port}`
     );
   }
 );
