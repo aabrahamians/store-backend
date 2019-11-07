@@ -28,8 +28,7 @@ server.start(
     }
   },
   serverReady => {
-    console.log("fdafasfdasdf", process.env.PORT);
-    debugger
+    
     console.log(
       `Server is now running on port ${process.env.FRONTEND_URL}:${serverReady.port}`
     );

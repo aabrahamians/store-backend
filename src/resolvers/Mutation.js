@@ -1,12 +1,24 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken');
+const { randomBytes } = require('crypto');
+const { promisify }= require('util');
+const { transport, makeEmail }= require('../mail');
+
 const Mutations = {
   async createItem(parent, args, ctx, info) {
-    // TODO: check auth
+
+    if(!ctx.request.userId) {
+      throw new Error('must be logged in')
+    }
 
     const item = await ctx.db.mutation.createItem(
       {
         data: {
+          user: { 
+            connect:{
+              id: ctx.request.userId
+            }
+          },
           ...args
         }
       },
@@ -90,6 +102,71 @@ const Mutations = {
     return { message: 'Goodbye!' };
   },
 
+  async requestReset(parent, {email}, ctx, info){
+    //check if real user
+    const user = await ctx.db.query.user({ where : { email: email }});
+    if(!user){
+      throw new Error(`no user found for email ${email}`)
+    }
+    //set reset token and expiry
+    const randomByteePromiseified = promisify(randomBytes);
+    const resetToken = (await randomByteePromiseified(20)).toString('hex');
+    const resetTokenExpiry = Date.now()  + 3600000; //1 hour
+    
+    const res = await ctx.db.mutation.updateUser({
+      where: { email  },
+      data: { resetToken, resetTokenExpiry },
+    });
+
+    const mailRes= await transport.sendMail({
+      from:'areg@areg.com',
+      to: email,
+      subject: 'Password Reset Requested',
+      html: makeEmail(`your password reset token is here! <a href='${process.env.FRONTEND_URL}/reset?resetToken=${resetToken}'> click here</a>`)
+    })
+
+
+    return{ message: "thanks"}
+  },
+  async resetPassword(parent, {password, confirmPassword,email, resetToken}, ctx, info) {
+    // check if the passwords match
+    if (password !== confirmPassword) {
+      throw new Error("Passwords do not match");
+    }
+    // check token and expiry
+
+    const [ user ] = await ctx.db.query.users({
+      where: {
+        resetToken: resetToken,
+        resetTokenExpiry_gte: Date.now() - 3600000,
+      },
+    });
+  
+    if (!user) {
+      throw new Error('This token is either invalid or expired!');
+    }
+    // Hash their new password
+    const newPassword = await bcrypt.hash(password, 10);
+    // Save the new password to the user and remove old resetToken fields
+    const updatedUser = await ctx.db.mutation.updateUser({
+      where: { email: user.email },
+      data: {
+        password: newPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    // 6. Generate JWT
+    const token = jwt.sign({ userId: updatedUser.id }, process.env.APP_SECRET);
+    // 7. Set the JWT cookie
+    ctx.response.cookie('token', token, {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 365,
+    });
+    // 8. return the new user
+    return updatedUser;
+  },
 };
 
 module.exports = Mutations;
