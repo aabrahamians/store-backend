@@ -38,8 +38,8 @@ const Mutations = {
     // TODO
     // 3. Delete it!
     return ctx.db.mutation.deleteItem({ where }, info);
-
   },
+
   async signup(parent,args,ctx,info){
     //lower case
     args.email = args.email.toLowerCase();
@@ -60,6 +60,28 @@ const Mutations = {
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 365
     });
+    return user;
+  },
+  
+  async signin(parent, {email, password}, ctx, info){
+    // find user
+    const user = await ctx.db.query.user({ where : {email}})
+    if(!user){
+      throw new Error(`no such user found for email ${email}`)
+    }
+    // check pass
+    const valid = await bcrypt.compare(password, user.password)
+    if(!valid){
+      throw new Error(`Invalid Password`)
+    }
+    // generate jwt
+    const token = jwt.sign({ userId: user.id}, process.env.APP_SECRET)
+    // set jwt
+    ctx.response.cookie('token', token,{
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 365
+    });
+    // retun user
     return user;
   }
 };
