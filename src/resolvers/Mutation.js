@@ -83,7 +83,13 @@ const Mutations = {
     });
     // retun user
     return user;
-  }
+  },
+
+  signout(parent, {email, password}, ctx, info){
+    ctx.response.clearCookie('token');
+    return { message: 'Goodbye!' };
+  },
+
 };
 
 module.exports = Mutations;
