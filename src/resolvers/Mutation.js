@@ -2,7 +2,9 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken');
 const { randomBytes } = require('crypto');
 const { promisify }= require('util');
+
 const { transport, makeEmail }= require('../mail');
+const { hasPermission } = require('../utils');
 
 const Mutations = {
   async createItem(parent, args, ctx, info) {
@@ -45,9 +47,14 @@ const Mutations = {
   async deleteItem(parent, args, ctx, info){
     const where = { id: args.id };
     // 1. find the item
-    const item = await ctx.db.query.item({ where }, `{ id title}`);
+    const item = await ctx.db.query.item({ where }, `{ id title user { id}}`);
     // 2. Check if they own that item, or have the permissions
-    // TODO
+    const ownsItem = item.user.id === ctx.request.userId;
+    const hasPerm = ctx.request.user.permissions.some(perm => ['ADMIN', 'ITEMDELETE'].includes(perm))
+
+    if( !ownsItem || !hasPerm ) {
+      throw new Error("you dont have permission to perform this task")
+    }
     // 3. Delete it!
     return ctx.db.mutation.deleteItem({ where }, info);
   },
@@ -167,6 +174,118 @@ const Mutations = {
     // 8. return the new user
     return updatedUser;
   },
-};
+  async updatePermissions(parent, {permissions, userId}, ctx, info) {
+    // check if logged in 
+    console.log('hi ', userId)
+
+    if(!ctx.request.userId) {
+      throw new Error('must be logged in')
+    }
+
+    //query current user
+    const user = await ctx.db.query.user({ where : { id: userId }}, info);
+
+    // check if they have permissions
+    hasPermission(user, ['ADMIN', 'PERMISSIONUPDATE'])
+    // update permissions
+    const updatedUser = await ctx.db.mutation.updateUser({
+      data: {
+        permissions: {
+          set: permissions
+        }
+      },
+      where: { id: userId },
+    })  
+    return user
+
+  },
+  async updatePermissions(parent, {permissions, userId}, ctx, info) {
+    // check if logged in 
+    console.log('hi ', userId)
+
+    if(!ctx.request.userId) {
+      throw new Error('must be logged in')
+    }
+
+    //query current user
+    const user = await ctx.db.query.user({ where : { id: userId }}, info);
+
+    // check if they have permissions
+    hasPermission(user, ['ADMIN', 'PERMISSIONUPDATE'])
+    // update permissions
+    const updatedUser = await ctx.db.mutation.updateUser({
+      data: {
+        permissions: {
+          set: permissions
+        }
+      },
+      where: { id: userId },
+    })  
+    return user
+
+  },
+  async addToCart(parent, args, ctx, info) {
+    // check if logged in 
+    const { userId } = ctx.request;
+    if(!userId) {
+      throw new Error('must be logged in')
+    }
+
+    //does item exsist in users cart
+    const [exsistingCartItem ] = await ctx.db.query.cartItems({ 
+      where : { 
+        user: {id: userId},
+        item: {id: args.id}
+      }}, info);
+
+      if(exsistingCartItem){
+        console.log('already in cart')
+        return ctx.db.mutation.updateCartItem({
+          where: { 
+            id: exsistingCartItem.id
+          },
+          data: {
+            quantity: exsistingCartItem.quantity + 1
+          }
+        })
+      }
+      return ctx.db.mutation.createCartItem({
+        data: {
+          user: {
+            connect: {id : userId}
+          },
+          item: {
+            connect: {id : args.id}
+          }
+        }
+      })
+
+  },
+  async removeFromCart(parent, args, ctx, info){
+    // find item
+    const cartItem = await ctx.db.query.cartItem(
+      {
+        where:{
+          id: args.id
+        },
+      },
+       `{id, user { id }}`
+       );
+    // verify item
+    if(!cartItem) throw new Error('Item not find');
+    
+    if(cartItem.user.id !== ctx.request.userId){
+      throw new Error('you dont own this')
+    }
+    
+    return ctx.db.mutation.deleteCartItem({
+      where: {
+        id: args.id
+      },
+      info
+    })
+
+  },
+}
 
 module.exports = Mutations;

@@ -19,6 +19,23 @@ server.express.use((req,res,next)=>{
   }
   next();
 })
+// populate user on each request
+server.express.use(
+  async (req,res,next)=>{
+
+  if(!req.userId) return next();
+
+  const where = {
+    id: req.userId,
+  };
+  const user = await db.query.user(
+    { where }, 
+    '{id, permissions, email, name}'
+  )
+  req.user = user;
+
+  next();
+})
 
 server.start(
   {
@@ -30,7 +47,7 @@ server.start(
   serverReady => {
     
     console.log(
-      `Server is now running on port ${process.env.FRONTEND_URL}:${serverReady.port}`
+      `Server is now running on port http://localhost:${serverReady.port}`
     );
   }
 );
