@@ -77,6 +77,14 @@ const Mutations = {
       },
       info
     );
+    const mailRes = await transport.sendMail({
+      from: "postmaster@alwaysonsaleprinting.com",
+      to: args.email,
+      subject: "Account Created",
+      html: makeEmail(
+        `Congratulations ${args.name}, your account was created for alwaysonsaleprinting.com <a href='${process.env.FRONTEND_URL}/'> click here to login</a>  `
+      )
+    });
     //create token for login
     const token = jwt.sign({ userId: user.id }, process.env.APP_SECRET);
     // set jwt as cookie on response
@@ -131,7 +139,7 @@ const Mutations = {
     });
 
     const mailRes = await transport.sendMail({
-      from: "areg@areg.com",
+      from: "postmaster@alwaysonsaleprinting.com",
       to: email,
       subject: "Password Reset Requested",
       html: makeEmail(
@@ -292,6 +300,32 @@ const Mutations = {
         id: args.id
       },
       info
+    });
+  },
+  async changeQuantityInCart(parent, args, ctx, info) {
+    // find item
+    const { userId } = ctx.request;
+    if (!userId) {
+      throw new Error("must be logged in");
+    }
+    const cartItems = await ctx.db.query.cartItems(
+      {
+        where: {
+          user: { id: userId }
+        }
+      },
+      info
+    );
+
+    const editingItem = cartItems.find(item => item.id == args.id);
+
+    return await ctx.db.mutation.updateCartItem({
+      where: {
+        id: args.id
+      },
+      data: {
+        quantity: editingItem.quantity + args.quantity
+      }
     });
   },
   async createOrder(parent, args, ctx, info) {
