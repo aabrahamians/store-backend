@@ -90,7 +90,8 @@ const Mutations = {
     // set jwt as cookie on response
     ctx.response.cookie("token", token, {
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 365
+      maxAge: 1000 * 60 * 60 * 24 * 365,
+      domain: "alwaysonsaleprinting.com"
     });
     return user;
   },
@@ -111,7 +112,8 @@ const Mutations = {
     // set jwt
     ctx.response.cookie("token", token, {
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 365
+      maxAge: 1000 * 60 * 60 * 24 * 365,
+      domain: "alwaysonsaleprinting.com"
     });
     // retun user
     return user;
@@ -188,7 +190,8 @@ const Mutations = {
     // 7. Set the JWT cookie
     ctx.response.cookie("token", token, {
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 365
+      maxAge: 1000 * 60 * 60 * 24 * 365,
+      domain: "alwaysonsaleprinting.com"
     });
     // 8. return the new user
     return updatedUser;
