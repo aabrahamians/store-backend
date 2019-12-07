@@ -120,7 +120,7 @@ const Mutations = {
   },
 
   signout(parent, { email, password }, ctx, info) {
-    ctx.response.clearCookie("token");
+    ctx.response.clearCookie("token", { domain: "alwaysonsaleprinting.com" });
     return { message: "Goodbye!" };
   },
 
